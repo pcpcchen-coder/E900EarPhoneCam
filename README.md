@@ -6,7 +6,7 @@
 
 ## 最新狀態（2026-11-06）
 
-**已到貨；原廠 App 驗收 7/7 完成（使用者操作回報）。第三方 BLE 控制尚未驗證。**
+**原廠驗收完成；自製 macOS BLE client 拍照與開始／停止錄影已通過實機驗證。Wi-Fi 原始媒體下載待測。**
 
 - [x] E900 充電、開機
 - [x] iPhone 安裝 GlassX
@@ -15,13 +15,14 @@
 - [x] 使用耳機實體按鍵錄製約 10 秒影片
 - [x] 透過 GlassX 將照片、影片匯入 iPhone
 - [x] GlassX 支援遠端拍照、開始錄影、停止錄影（使用者回報）
-- [ ] Mac mini 掃描 E900 BLE advertisement、GATT UUID
+- [x] Mac 本地掃描 E900 BLE advertisement、GATT UUID（Swift/CoreBluetooth）
 - [ ] 確認 GlassX 的遠端攝影命令是否走 BLE
-- [ ] 自製 BLE client 執行 E900 拍照／錄影
+- [x] 自製 BLE client 執行 E900 拍照／錄影，使用者確認實際照片及可播放影片
+- [ ] 不經 GlassX，以 Wi-Fi/HTTP 下載原始媒體
 - [ ] QRing R08 → iPhone → E900 串接
 - [ ] 背景鎖屏可靠性與媒體自動同步
 
-> **證據等級提醒**：上面已勾選的是「使用者直接操作並回報成功」，不是本 Repo 已取得 BLE封包、錄影檔或自動化測試數據。E09／EYEVUE 與 E900／GlassX 可能有不同協定。不得直接把 E09 的 `0x23` / `0x24` 當作 E900 指令。
+> **證據等級**：原廠功能由使用者回報；第三方 BLE 控制有本地封包記錄、狀態變化及使用者媒體驗收，見 [實機報告](docs/E900_VALIDATION_2026-11-06.md)。已確認部分 E09 相容命令，不能擴大推論為全部協定相容。尚未擷取 GlassX 自身封包，影片精確長度未獨立量測。
 
 ## 第二輪：Mac mini BLE 只讀偵測
 
@@ -40,6 +41,10 @@ python tools/ble_scan.py --scan-seconds 15 --connect 1
 
 其中 `--connect 1` **只是例子**；請依當次掃描結果所顯示的 E900 序號選擇，不能假設 1 一定是 E900。
 
+## 本輪 Wi-Fi 測試
+
+依 [Wi-Fi 取檔步驟](docs/PHASE4_WIFI_MEDIA.md) 測試；[Swift AP 開啟工具](tools/e900_wifi_open.swift) 先查電量再發一次 OPEN_WIFI/AP 候選指令。依賴本次本地掃描快取，請先讀文件。完整 E09 參考副本及來源版本在 [references/e09](docs/references/e09/NOTICE.md)。
+
 ## 文件
 
 - [Phase 1 實機驗收與證據等級](docs/PHASE1_ACCEPTANCE.md)
@@ -50,9 +55,10 @@ python tools/ble_scan.py --scan-seconds 15 --connect 1
 
 - [E900 與 R08 早期研究檔案（舊 Repo）](https://github.com/pcpcchen-coder/HeadsetWithCam)
 - [Halo-Ring：QRing R08 逆向研究](https://github.com/MRziyi/Halo-Ring)
-- [EYEVUE E09：參考協定，未驗證與 E900 相容](https://github.com/sctg-development/ai-smart-glasses-e09)
+- [EYEVUE E09：部分 BLE 命令已在 E900 驗證](https://github.com/sctg-development/ai-smart-glasses-e09)
 - [GlassX App Store](https://apps.apple.com/us/app/glassx/id6761040357)
 
 ## 安全與隱私
 
-專案初期只做 BLE 掃描、GATT Service/Characteristic 列舉，不進行 OTA、恢復原廠、刪除媒體、未知指令探測；實機影片僅測試合法且明確告知的拍攝場景。公開報告避免提交 BLE 裝置識別碼、私人影片、帳號、金鑰或序號。
+目前已完成受限拍照／錄影控制測試，正進入 Wi-Fi 取檔驗證；不進行 OTA、恢復原廠、刪除媒體或命令暴力探測；實機影片僅測試合法且明確告知的拍攝場景。公開報告避免提交 BLE 裝置識別碼、私人影片、帳號、金鑰或序號。
+
