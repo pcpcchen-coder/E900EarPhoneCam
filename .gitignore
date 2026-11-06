@@ -1,0 +1,15 @@
+# Python / local BLE diagnostics
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.env
+*.log
+*.jsonl
+*.trace
+*.pcap
+*.pcapng
+# Do not upload any unredacted recordings or local hardware evidence by default
+recordings/
+captures/
+docs/evidence/raw/
