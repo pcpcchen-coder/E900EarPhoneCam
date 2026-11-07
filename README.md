@@ -4,7 +4,20 @@
 
 目標：以 QRing R08 觸控事件作為輸入，經自製 iPhone App 將命令傳至 E900 攝影耳機執行拍照、開始／停止錄影；將原始媒體匯入手機，必要時轉交 Mac mini AI Agent 進行 OCR、場景理解與事件摘要。
 
-## 最新狀態（2026-11-06）
+## macOS 控制 App（2026-11-07）
+
+新增 **E900 Control** 原生 App：裝置連線、攝影與錄音、設定與手勢、音樂與通話、Wi-Fi 媒體下載、RTSP 播放器入口、語音串流診斷及維護控制。
+
+```bash
+bash scripts/build-macos.sh
+open "dist/E900 Control.app"
+```
+
+完整操作、功能覆蓋與未驗證範圍見 [App 使用說明](docs/APP_GUIDE.md)。App 不將 E09 候選功能當成 E900 已驗證；OTA 及未知參數編碼有明確限制。這是 Mac App，尚未包含 iPhone App 或 AI 雲端服務。
+
+後續開發請先讀 [Claude Code 接手文件](docs/CLAUDE_CODE_HANDOFF.md)：包含現況、架構、驗證證據、已知缺口、優先修正與可直接使用的起始 prompt。
+
+## 既有實機狀態（2026-11-06）
 
 **原廠驗收完成；自製 macOS BLE client 拍照與開始／停止錄影已通過實機驗證。Wi-Fi 原始媒體下載待測。**
 
@@ -61,4 +74,5 @@ python tools/ble_scan.py --scan-seconds 15 --connect 1
 ## 安全與隱私
 
 目前已完成受限拍照／錄影控制測試，正進入 Wi-Fi 取檔驗證；不進行 OTA、恢復原廠、刪除媒體或命令暴力探測；實機影片僅測試合法且明確告知的拍攝場景。公開報告避免提交 BLE 裝置識別碼、私人影片、帳號、金鑰或序號。
+
 
