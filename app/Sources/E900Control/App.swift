@@ -77,7 +77,7 @@ struct ContentView: View {
     }
     private var overview: some View {
         Group {
-            HStack(spacing: 14) { Metric(title: "電池", value: headset.battery, icon: "battery.75percent"); Metric(title: "錄影狀態", value: headset.recording, icon: "record.circle"); Metric(title: "錄音狀態", value: headset.audioRecording, icon: "mic") }
+            HStack(spacing: 14) { Metric(title: "電池", value: headset.battery, icon: "battery.75percent"); Metric(title: "錄影狀態", value: headset.recording, icon: "record.circle"); Metric(title: "錄音狀態", value: headset.audioRecording, icon: "mic"); Metric(title: "佩戴", value: headset.wearing, icon: "person.crop.circle") }
             GroupBox("裝置連線") {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("耳機開機後搜尋，選擇你的 E900。若無法連線，先暫停 GlassX 的連線。").foregroundStyle(.secondary)
@@ -106,7 +106,8 @@ struct ContentView: View {
                 }.padding(12).frame(maxWidth: .infinity, alignment: .leading)
             }
             commandGrid("裝置資訊")
-            Text("韌體：\(headset.firmware)\n儲存：\(headset.capacity)").font(.callout).textSelection(.enabled)
+            Text("韌體：\(headset.firmware)\n儲存：\(headset.capacity)\n待處理指令：\(headset.pendingCommands)").font(.callout).textSelection(.enabled)
+            CapabilityView()
         }
     }
     private var capture: some View {
@@ -115,8 +116,13 @@ struct ContentView: View {
             commandGrid("攝影與錄音")
             ThumbnailView(submit: submit)
             GroupBox("BLE 照片預覽 · 低解析度") {
-                if let image = headset.lastPreview { Image(nsImage: image).resizable().scaledToFit().frame(maxHeight: 320).padding() }
-                else { Text("拍照或拉取縮圖後，完整且可解碼的 JPEG 會顯示在這裡。\nRX 包裝格式尚未完整解碼時，請改用 Wi-Fi 下載。").foregroundStyle(.secondary).frame(maxWidth: .infinity, minHeight: 160) }
+                if let image = headset.lastPreview {
+                    VStack(alignment: .leading) {
+                        Image(nsImage: image).resizable().scaledToFit().frame(maxHeight: 320)
+                        HStack { Text("\(Int(image.size.width))×\(Int(image.size.height)) · BLE 低解析預覽").font(.caption).foregroundStyle(.secondary); Button("另存 JPEG") { headset.savePreview() } }
+                    }.padding()
+                }
+                else { Text("拍照或拉取縮圖後，AA15 傳回的完整且可解碼 JPEG 會顯示在這裡（52 58 包裝已解碼，E900 待實機確認）。\n原始畫質請改用 Wi-Fi 下載。").foregroundStyle(.secondary).frame(maxWidth: .infinity, minHeight: 160) }
             }
         }
     }
@@ -124,8 +130,12 @@ struct ContentView: View {
         Group {
             Text("耳機端語音控制與 Opus 串流工具。AI 辨識、對話與 TTS 服務尚未串接；沒有上傳音訊到雲端。").foregroundStyle(.secondary)
             commandGrid("語音助手")
-            HStack { Metric(title: "接收音訊封包", value: "\(headset.voicePackets)", icon: "waveform"); Button("匯出 Opus 封包") { headset.saveVoice() }.disabled(headset.voicePackets == 0) }
-            Text("串流啟動後 30 秒會要求停止。匯出為帶長度的原始 Opus 封包，並非可直接播放的音檔；本機錄音原檔請走 Wi-Fi 下載。").font(.caption).foregroundStyle(.secondary)
+            HStack {
+                Metric(title: "串流狀態", value: headset.voice.label, icon: "dot.radiowaves.left.and.right")
+                Metric(title: "接收音訊封包", value: "\(headset.voicePackets)", icon: "waveform")
+                Button("匯出 Ogg Opus") { headset.saveVoice() }.disabled(headset.voicePackets == 0)
+            }
+            Text("主動串流 30 秒後自動要求停止；停止未獲耳機確認前狀態維持「停止中」，最多自動重送 3 次。停止按鈕連線後一律可用。\n匯出依 E09 推定：每個 0x46 封包為一個原始 Opus packet，封裝為 Ogg Opus；若封包不符 Opus 格式會改存原始封包。E900 待實機確認可播放。本機錄音原檔請走 Wi-Fi 下載。").font(.caption).foregroundStyle(.secondary)
             Text("喚醒詞／離線語音開關與語言在「裝置設定」。").font(.callout)
         }
     }
@@ -155,9 +165,9 @@ struct CommandButton: View {
         Button { submit(command) } label: {
             VStack(alignment: .leading, spacing: 10) {
                 HStack { Text(command.title).font(.headline); Spacer(); if command.destructive { Image(systemName: "exclamationmark.triangle") } }
-                Text(command.verified ? "E900 已驗證" : "E09 候選 · 待驗證").font(.caption).foregroundStyle(command.verified ? .green : .orange)
+                Text(command.verified ? "E900 已驗證" : command.isStop ? "停止類 · 連線後隨時可用" : "E09 候選 · 待驗證").font(.caption).foregroundStyle(command.verified ? .green : command.isStop ? .teal : .orange)
             }.frame(maxWidth: .infinity, minHeight: 52, alignment: .leading).padding(14)
-        }.buttonStyle(.bordered).disabled(!headset.ready || (!command.verified && !headset.experimental))
+        }.buttonStyle(.bordered).disabled(!headset.ready || (!command.verified && !headset.experimental && !command.isStop))
     }
 }
 
@@ -171,5 +181,27 @@ struct ThumbnailView: View {
             Button("查詢縮圖狀態") { submit(.init(id: "thumbStatus", group: "攝影", title: "縮圖狀態", code: 0x37, payload: [UInt8(index)])) }
             Button("拉取縮圖") { submit(.init(id: "thumbPull", group: "攝影", title: "拉取縮圖", code: 0x36, payload: [UInt8(index)])) }
         }.disabled(!headset.ready || !headset.experimental)
+    }
+}
+
+struct CapabilityView: View {
+    @EnvironmentObject var headset: Headset
+    var body: some View {
+        GroupBox("硬體能力（0x95）") {
+            VStack(alignment: .leading, spacing: 6) {
+                if let mask = headset.capabilities {
+                    Text(String(format: "bitmask %08X · 依 E09 位元定義解讀", mask)).font(.caption.monospaced()).foregroundStyle(.secondary)
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), alignment: .leading)], alignment: .leading, spacing: 6) {
+                        ForEach(Capability.allCases, id: \.rawValue) { cap in
+                            let on = Capability.decode(mask).contains(cap)
+                            Label(cap.title, systemImage: on ? "checkmark.circle.fill" : "minus.circle").foregroundStyle(on ? .green : .secondary)
+                        }
+                    }
+                } else {
+                    Text("尚未讀取。未知時不假設支援；即時影像等功能請先讀取能力。").foregroundStyle(.secondary)
+                    Button("讀取硬體能力") { if let c = CommandCatalog.all.first(where: { $0.id == "capabilities" }) { headset.run(c) } }.disabled(!headset.ready || !headset.experimental)
+                }
+            }.padding(12).frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 }

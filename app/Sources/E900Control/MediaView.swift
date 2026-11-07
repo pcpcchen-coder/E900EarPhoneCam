@@ -29,13 +29,13 @@ struct MediaView: View {
                 TableColumn("類型", value: \.kind).width(60)
                 TableColumn("原始 size", value: \.size).width(90)
                 TableColumn("建立時間", value: \.created)
-                TableColumn("本機") { row in if media.saved[row.id] != nil { Button("開啟") { media.open(row) } } }.width(60)
+                TableColumn("本機") { row in if media.savedURL(row) != nil { Button("開啟") { media.open(row) } } }.width(60)
             }.frame(minHeight: 260).disabled(media.busy)
             GroupBox("即時預覽 · RTSP") {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("需耳機能力 bit0 支援及系統已安裝可處理 RTSP 的播放器（例如 VLC）。此版本以外部播放器顯示，未內嵌串流解碼。").foregroundStyle(.secondary)
+                    Text("需先讀取硬體能力且 bit0 支援（未知時按鈕停用），並安裝可處理 RTSP 的播放器（例如 VLC）。此版本以外部播放器顯示，未內嵌串流解碼。").foregroundStyle(.secondary)
                     HStack {
-                        Button("啟動耳機即時影像") { if let c = CommandCatalog.all.first(where: { $0.id == "live" }) { submit(c) } }.disabled(!headset.ready || !headset.experimental || headset.capabilities.map { $0 & 1 == 0 } == true)
+                        Button("啟動耳機即時影像") { if let c = CommandCatalog.all.first(where: { $0.id == "live" }) { submit(c) } }.disabled(!headset.ready || !headset.experimental || headset.capabilities.map { $0 & 1 == 0 } != false)
                         Picker("路徑", selection: $streamPath) { Text("/h264").tag("h264"); Text("/xxx.mov").tag("xxx.mov") }.frame(width: 180)
                         Button("用播放器開啟") {
                             guard MediaAPI.validHost(media.host), let url = URL(string: "rtsp://\(media.host)/\(streamPath)") else { media.message = "請填寫耳機私有 IPv4"; return }

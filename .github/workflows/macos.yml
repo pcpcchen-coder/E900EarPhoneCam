@@ -1,0 +1,32 @@
+name: macOS build and test
+
+on:
+  push:
+    branches: [main, "codex/**", "claude/**"]
+    paths: ["app/**", "scripts/**", ".github/workflows/macos.yml"]
+  pull_request:
+    paths: ["app/**", "scripts/**", ".github/workflows/macos.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: swift --version
+      - name: Unit tests
+        run: bash scripts/test-macos.sh
+      - name: Release .app
+        run: bash scripts/build-macos.sh
+      - name: Package
+        run: ditto -c -k --keepParent "dist/E900 Control.app" "dist/E900-Control-${GITHUB_SHA::7}.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: E900-Control-app
+          path: dist/E900-Control-*.zip
+          retention-days: 14
