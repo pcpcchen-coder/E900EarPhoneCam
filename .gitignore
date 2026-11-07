@@ -17,3 +17,4 @@ app/.build/
 dist/
 *.opuspackets
 
+acceptance-reports/

@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-@main struct E900ControlApp: App {
+struct E900ControlApp: App {
     @StateObject private var headset = Headset()
     @StateObject private var media = MediaStore()
     var body: some Scene {

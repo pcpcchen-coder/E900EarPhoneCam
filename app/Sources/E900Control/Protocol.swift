@@ -58,12 +58,19 @@ struct PhotoAssembler {
     private var bytes = Data()
     private var covered = Set<Int>()
     private var active = false
-    mutating func reset() { bytes = Data(); covered = []; active = false }
+    private var chunks = 0
+    private var declared: Int?
+    /// Human-readable state captured when the last transfer ended (for diagnostics).
+    private(set) var lastSummary = ""
+    mutating func reset() { bytes = Data(); covered = []; active = false; chunks = 0; declared = nil }
     mutating func accept(_ frame: Frame) -> Data? {
         switch frame.command {
-        case 0x97: reset(); active = true
+        case 0x97:
+            reset(); active = true
+            if frame.payload.count >= 4 { declared = frame.payload.prefix(4).reduce(0) { ($0 << 8) | Int($1) } }
         case 0x98:
             guard active, frame.payload.count > 4 else { return nil }
+            chunks += 1
             let offset = frame.payload.prefix(4).reduce(0) { ($0 << 8) | Int($1) }
             let chunk = Array(frame.payload.dropFirst(4))
             guard offset <= 4_000_000, offset + chunk.count <= 4_000_000 else { reset(); return nil }
@@ -72,10 +79,17 @@ struct PhotoAssembler {
             bytes.replaceSubrange(offset..<end, with: chunk)
             covered.formUnion(offset..<end)
         case 0x99:
+            lastSummary = "宣告 \(declared.map(String.init) ?? "?") bytes，收到 \(chunks) 塊，涵蓋 \(covered.count)/\(bytes.count) bytes，"
+                + "開頭 \(ProtocolValue.hex(bytes.prefix(2)))，結尾 \(ProtocolValue.hex(bytes.suffix(2)))"
             defer { reset() }
-            guard active, bytes.count > 4, covered.count == bytes.count,
-                  bytes.prefix(2) == Data([0xFF, 0xD8]), bytes.suffix(2) == Data([0xFF, 0xD9]) else { return nil }
-            return bytes
+            // E900 (fw 1.6.6) pads the last chunk with zero bytes after EOI: 11580 bytes declared and
+            // sent, JPEG ends at 11578. Trim a small zero tail; anything else after EOI is rejected.
+            var jpeg = bytes
+            var trimmed = 0
+            while trimmed < 16, jpeg.last == 0 { jpeg.removeLast(); trimmed += 1 }
+            guard active, jpeg.count > 4, covered.count == bytes.count,
+                  jpeg.prefix(2) == Data([0xFF, 0xD8]), jpeg.suffix(2) == Data([0xFF, 0xD9]) else { return nil }
+            return jpeg
         default: break
         }
         return nil
@@ -284,5 +298,18 @@ enum CommandCatalog {
         guard let year = c.year, (2000...2255).contains(year) else { return nil }
         let fields = [year - 2000, c.month ?? 1, c.day ?? 1, c.hour ?? 0, c.minute ?? 0, c.second ?? 0]
         return .init(id: "clock", group: "設定", title: "同步 Mac 時間", code: 0x59, payload: fields.map { UInt8($0) })
+    }
+}
+
+/// CoreBluetooth's `CBUUID.uuidString` is not stable across macOS releases: older systems return
+/// "AA14" for a 16-bit UUID, macOS 27 returns "0000AA14-0000-1000-8000-00805F9B34FB". Channel
+/// routing must compare the short form, or every AA14 reply is silently ignored.
+enum BluetoothUUID {
+    private static let baseSuffix = "-0000-1000-8000-00805F9B34FB"
+    static func short(_ uuid: String) -> String {
+        let u = uuid.uppercased()
+        guard u.count == 36, u.hasSuffix(baseSuffix) else { return u }
+        let head = u.prefix(8)
+        return head.hasPrefix("0000") ? String(head.dropFirst(4)) : String(head)
     }
 }

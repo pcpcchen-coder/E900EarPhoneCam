@@ -40,6 +40,19 @@ final class ProtocolTests: XCTestCase {
         XCTAssertNil(assembler.accept(start)); XCTAssertNil(assembler.accept(start))
         XCTAssertEqual(assembler.accept(.init(command: 0x99, payload: [0])), Data([0xFF,0xD8,1,2,0xFF,0xD9]))
     }
+    /// Layout seen on E900-1928 (fw 01 06 06 02 03 09 02): 496-byte chunks, declared size equals the
+    /// bytes sent, and the last chunk carries two zero bytes after EOI.
+    func testPhotoZeroPaddingAfterEOIIsTrimmed() {
+        var b = PhotoAssembler()
+        _ = b.accept(.init(command: 0x97, payload: [0, 0, 0, 8, 2]))
+        _ = b.accept(.init(command: 0x98, payload: [0,0,0,0, 0xFF,0xD8,7,8]))
+        _ = b.accept(.init(command: 0x98, payload: [0,0,0,4, 0xFF,0xD9,0,0]))
+        XCTAssertEqual(b.accept(.init(command: 0x99, payload: [0])), Data([0xFF,0xD8,7,8,0xFF,0xD9]))
+        var c = PhotoAssembler()
+        _ = c.accept(.init(command: 0x97, payload: []))
+        _ = c.accept(.init(command: 0x98, payload: [0,0,0,0, 0xFF,0xD8,7,8,0xFF,0xD9,0x41,0]))
+        XCTAssertNil(c.accept(.init(command: 0x99, payload: [0])), "non-zero data after EOI is not padding")
+    }
     func testPhotoGapsAndMaliciousOffsetRejected() {
         var a = PhotoAssembler()
         _ = a.accept(.init(command: 0x97, payload: []))
