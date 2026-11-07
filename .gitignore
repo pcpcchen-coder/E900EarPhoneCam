@@ -13,3 +13,7 @@ __pycache__/
 recordings/
 captures/
 docs/evidence/raw/
+app/.build/
+dist/
+*.opuspackets
+

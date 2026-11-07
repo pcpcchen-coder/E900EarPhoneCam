@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleExecutable</key><string>E900Control</string>
+<key>CFBundleIdentifier</key><string>com.pcpcchen.e900control</string>
+<key>CFBundleName</key><string>E900 Control</string>
+<key>CFBundleDisplayName</key><string>E900 Control</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>CFBundleShortVersionString</key><string>0.1.0</string>
+<key>CFBundleVersion</key><string>1</string>
+<key>LSMinimumSystemVersion</key><string>13.0</string>
+<key>NSHighResolutionCapable</key><true/>
+<key>NSBluetoothAlwaysUsageDescription</key><string>連接你選擇的 E900 耳機以拍照、錄影、讀取狀態及套用設定。</string>
+<key>NSBluetoothPeripheralUsageDescription</key><string>操作你選擇的 E900 藍牙攝影耳機。</string>
+<key>NSLocalNetworkUsageDescription</key><string>透過耳機 Wi-Fi 讀取照片、影片及錄音，並下載至你選擇的資料夾。</string>
+<key>NSAppTransportSecurity</key><dict><key>NSAllowsLocalNetworking</key><true/></dict>
+</dict></plist>
