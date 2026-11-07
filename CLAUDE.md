@@ -14,4 +14,5 @@
 - 不送 0x14 恢復原廠、0x15 清配對、0x43 手勢重置、`0x44 30 00` 清空媒體、0x63 OTA；不用任意 hex 做實驗。
 - 不把 E09 參考協定或協定回覆寫成「E900 已驗證」；照片／影片內容只有 George 確認後才算通過。
 - 不收集 API key、不上傳音訊或媒體；後續 AI 應用等 George 決定。
+- 不從 shell 直接執行 `E900 Control.app/Contents/MacOS/E900Control --accept`（TCC 會以 SIGABRT 終止）；一律走 `scripts/install-and-accept.sh`，它用 `open` 啟動。
 - 不把 `acceptance-reports/`、錄音、照片、裝置 UUID 提交到 git。

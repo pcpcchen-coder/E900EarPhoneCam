@@ -78,7 +78,7 @@ bash scripts/install-and-accept.sh
 | 開始／停止錄影 | 0x23／0x24 回覆，且 ACTION_SYNC 錄影旗標 1→0；不論開始是否成功都會送停止 |
 | 中斷與狀態重置 | 中斷後 ready、佇列、狀態清空 |
 
-常用參數：`--list`（只列出附近裝置）、`--id <UUID>`、`--video-seconds 8`、`--candidates`（另跑唯讀 E09 查詢）、`--no-accept`（只測試、建置、安裝）、`--skip-tests`。第一次執行時 macOS 會要求藍牙權限，需本人在「系統設定 → 隱私權與安全性 → 藍牙」允許執行它的終端機或 Claude。
+常用參數：`--list`（只列出附近裝置）、`--id <UUID>`、`--video-seconds 8`、`--candidates`（另跑唯讀 E09 查詢）、`--no-accept`（只測試、建置、安裝）、`--skip-tests`。腳本以 `open` 啟動 .app，App 本身就是藍牙權限的主體；第一次執行時 macOS 會詢問是否允許「E900 Control」使用藍牙。不要從 shell 直接執行 `Contents/MacOS/E900Control --accept`：macOS 會把藍牙存取算在上層的終端機／Claude，因為它們沒有藍牙用途說明而以 SIGABRT 終止 App。App 的輸出與報告先寫到 `~/Library/Caches/com.pcpcchen.e900control/acceptance/`（App 無權寫入 `~/Documents` 下的 repo），結束後由腳本複製回 `acceptance-reports/`。掃描時名稱含 E900 **或廣播 AA12 服務**的裝置都算符合；`--list` 會列出各裝置廣播的 service UUID。
 
 ## 驗證
 

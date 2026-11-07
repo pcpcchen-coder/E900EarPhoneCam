@@ -18,7 +18,7 @@ import Foundation
 
         guard await waitUntil(10, { self.headset.status.hasPrefix("藍牙已開啟") }) else {
             say("藍牙不可用：\(headset.status)")
-            say("第一次執行請在「系統設定 → 隱私權與安全性 → 藍牙」允許終端機（或 Claude）後重試。")
+            say("請用 scripts/install-and-accept.sh（以 open 啟動 .app），並在「系統設定 → 隱私權與安全性 → 藍牙」允許 E900 Control 後重試。")
             report.record("藍牙", .fail, headset.status)
             return finish()
         }
@@ -26,9 +26,13 @@ import Foundation
         headset.scan()
         say("掃描附近裝置 12 秒…")
         _ = await waitUntil(13, { !self.headset.scanning })
-        let scanned = headset.devices.map { ScannedDevice(id: $0.id, name: $0.name, rssi: $0.rssi) }
+        let scanned = headset.devices.map { ScannedDevice(id: $0.id, name: $0.name, rssi: $0.rssi, services: $0.services) }
         if options.listOnly {
-            for d in scanned.sorted(by: { $0.rssi > $1.rssi }) { say("\(d.rssi) dBm  \(d.name)  \(d.id.uuidString)") }
+            for d in scanned.sorted(by: { $0.rssi > $1.rssi }) {
+                let svc = d.services.isEmpty ? "" : "  [\(d.services.joined(separator: ","))]"
+                let mark = d.advertisesCommandService ? "  ← AA12" : ""
+                say("\(d.rssi) dBm  \(d.name)  \(d.id.uuidString)\(svc)\(mark)")
+            }
             return 0
         }
         let target: ScannedDevice

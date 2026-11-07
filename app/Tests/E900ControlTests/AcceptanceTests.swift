@@ -30,6 +30,14 @@ final class AcceptanceTests: XCTestCase {
         XCTAssertEqual(DeviceSelector.choose([a, other], options: byName), .chosen(other))
     }
 
+    func testUnnamedHeadsetMatchedByCommandService() {
+        let unnamed = ScannedDevice(id: UUID(), name: "未命名裝置", rssi: -45, services: ["180F", "aa12"])
+        let jl = ScannedDevice(id: UUID(), name: "JL_AE00", rssi: -40, services: ["AE00"])
+        XCTAssertEqual(DeviceSelector.choose([unnamed, jl], options: .init()), .chosen(unnamed), "AE00 alone is not enough")
+        let named = ScannedDevice(id: UUID(), name: "E900", rssi: -60)
+        XCTAssertEqual(DeviceSelector.choose([unnamed, named], options: .init()), .ambiguous([unnamed, named]))
+    }
+
     func testReportVerdictsAndMarkdown() {
         var r = AcceptanceReport(started: Date(timeIntervalSince1970: 0))
         r.device = ScannedDevice(id: UUID(), name: "E900", rssi: -55)

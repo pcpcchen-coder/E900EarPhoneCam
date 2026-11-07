@@ -12,12 +12,12 @@ struct AcceptanceOptions: Equatable {
 
     static let usage = """
     E900Control --accept [選項]
-      --name <文字>        依廣播名稱挑選（預設 E900，不分大小寫）
+      --name <文字>        依廣播名稱挑選（預設 E900，不分大小寫）；廣播 AA12 服務者也算符合
       --id <UUID>          指定 CoreBluetooth 裝置 UUID（多台符合時必填）
       --video-seconds <n>  錄影長度，1–60 秒（預設 5）
       --candidates         另跑唯讀的 E09 候選查詢（版本、容量、能力、狀態、語音、音量）
       --report <路徑>      報告輸出位置（預設 ./acceptance-reports/E900-<時間>.md）
-      --list               只掃描並列出附近裝置
+      --list               只掃描並列出附近裝置（含廣播的 service UUID）
     不會執行設定變更、刪除、重置或 OTA。
     """
 
@@ -71,6 +71,12 @@ struct ScannedDevice: Equatable {
     let id: UUID
     let name: String
     let rssi: Int
+    var services: [String] = []
+
+    /// The E900 command service. Some units advertise it even when the local name is empty or
+    /// generic (JL_*/DH_*), so it identifies the headset better than the name alone.
+    static let commandService = "AA12"
+    var advertisesCommandService: Bool { services.contains { $0.uppercased() == Self.commandService } }
 }
 
 enum DeviceChoice: Equatable {
@@ -81,12 +87,15 @@ enum DeviceChoice: Equatable {
 
 enum DeviceSelector {
     /// Never guesses between several matching headsets: an explicit `--id` wins, otherwise exactly
-    /// one device whose advertised name contains the filter must be present.
+    /// one device whose advertised name contains the filter, or that advertises the AA12 command
+    /// service, must be present.
     static func choose(_ devices: [ScannedDevice], options: AcceptanceOptions) -> DeviceChoice {
         if let id = options.deviceID {
             return devices.first { $0.id == id }.map(DeviceChoice.chosen) ?? .none
         }
-        let matches = devices.filter { $0.name.range(of: options.nameFilter, options: .caseInsensitive) != nil }
+        let matches = devices.filter {
+            $0.name.range(of: options.nameFilter, options: .caseInsensitive) != nil || $0.advertisesCommandService
+        }
         switch matches.count {
         case 0: return .none
         case 1: return .chosen(matches[0])

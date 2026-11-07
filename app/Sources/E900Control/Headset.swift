@@ -6,6 +6,8 @@ struct DiscoveredDevice: Identifiable {
     let peripheral: CBPeripheral
     var name: String
     var rssi: Int
+    /// Advertised service UUIDs (union over advertising and scan-response packets).
+    var services: [String] = []
     var id: UUID { peripheral.identifier }
 }
 
@@ -104,10 +106,18 @@ final class Headset: NSObject, ObservableObject, CBCentralManagerDelegate, CBPer
         log(status)
     }
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
-        let name = advertisementData[CBAdvertisementDataLocalNameKey] as? String ?? peripheral.name ?? "未命名裝置"
-        let row = DiscoveredDevice(peripheral: peripheral, name: name, rssi: RSSI.intValue)
-        if let index = devices.firstIndex(where: { $0.id == row.id }) { devices[index] = row }
-        else { devices.append(row) }
+        let advertised = (advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID] ?? [])
+            + (advertisementData[CBAdvertisementDataOverflowServiceUUIDsKey] as? [CBUUID] ?? [])
+        var name = advertisementData[CBAdvertisementDataLocalNameKey] as? String ?? peripheral.name ?? "未命名裝置"
+        var services = advertised.map(\.uuidString)
+        if let index = devices.firstIndex(where: { $0.id == peripheral.identifier }) {
+            // Advertising and scan-response packets carry different fields; keep what we already saw.
+            if name == "未命名裝置" { name = devices[index].name }
+            services = Array(Set(devices[index].services + services)).sorted()
+            devices[index] = DiscoveredDevice(peripheral: peripheral, name: name, rssi: RSSI.intValue, services: services)
+        } else {
+            devices.append(DiscoveredDevice(peripheral: peripheral, name: name, rssi: RSSI.intValue, services: services.sorted()))
+        }
     }
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         guard peripheral === target else { return }
