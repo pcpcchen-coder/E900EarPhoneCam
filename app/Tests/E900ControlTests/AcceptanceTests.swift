@@ -53,4 +53,12 @@ final class AcceptanceTests: XCTestCase {
         r.record("停止錄影", .fail, "未回到 0")
         XCTAssertEqual(r.exitCode, 1)
     }
+
+    func testBluetoothUUIDShortForm() {
+        XCTAssertEqual(BluetoothUUID.short("0000AA14-0000-1000-8000-00805F9B34FB"), "AA14", "macOS 27 full form")
+        XCTAssertEqual(BluetoothUUID.short("aa15"), "AA15", "older macOS short form")
+        XCTAssertEqual(BluetoothUUID.short("1234AA14-0000-1000-8000-00805F9B34FB"), "1234AA14", "32-bit alias")
+        let vendor = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
+        XCTAssertEqual(BluetoothUUID.short(vendor), vendor, "vendor 128-bit UUIDs stay intact")
+    }
 }

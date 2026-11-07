@@ -41,6 +41,8 @@ final class Headset: NSObject, ObservableObject, CBCentralManagerDelegate, CBPer
     private var writer: CBCharacteristic?
     private var subscriptions = Set<String>()
     private var parsers: [String: FrameParser] = [:]
+    /// Raw AA15 notification bytes of this link (capped), for diagnosing preview assembly.
+    private(set) var rawAA15 = Data()
     private var photo = PhotoAssembler()
     private var photoTimer: Timer?
     private var voiceTimer: Timer?
@@ -86,7 +88,7 @@ final class Headset: NSObject, ObservableObject, CBCentralManagerDelegate, CBPer
     }
     private func clearSession() {
         session = UUID(); ready = false; connecting = false; writer = nil; target = nil
-        subscriptions = []; parsers = [:]; photo.reset()
+        subscriptions = []; parsers = [:]; rawAA15 = Data(); photo.reset()
         let dropped = commands.reset()
         if !dropped.isEmpty { log("斷線：取消 \(dropped.count) 筆未完成指令（不會在重新連線後重送）") }
         pendingCommands = 0
@@ -109,7 +111,7 @@ final class Headset: NSObject, ObservableObject, CBCentralManagerDelegate, CBPer
         let advertised = (advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID] ?? [])
             + (advertisementData[CBAdvertisementDataOverflowServiceUUIDsKey] as? [CBUUID] ?? [])
         var name = advertisementData[CBAdvertisementDataLocalNameKey] as? String ?? peripheral.name ?? "未命名裝置"
-        var services = advertised.map(\.uuidString)
+        var services = advertised.map { BluetoothUUID.short($0.uuidString) }
         if let index = devices.firstIndex(where: { $0.id == peripheral.identifier }) {
             // Advertising and scan-response packets carry different fields; keep what we already saw.
             if name == "未命名裝置" { name = devices[index].name }
@@ -232,7 +234,8 @@ final class Headset: NSObject, ObservableObject, CBCentralManagerDelegate, CBPer
     func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor c: CBCharacteristic, error: Error?) {
         guard peripheral === target else { return }
         guard error == nil, let data = c.value else { log("通知讀取失敗"); return }
-        let key = c.uuid.uuidString
+        let key = BluetoothUUID.short(c.uuid.uuidString)
+        if key == "AA15", rawAA15.count + data.count <= 2_000_000 { rawAA15.append(data) }
         var parser = parsers[key] ?? FrameParser(acceptsFileFrames: key == "AA15")
         let before = parser.rejected; let frames = parser.feed(data); parsers[key] = parser
         if parser.rejected > before { log("丟棄校驗失敗的 \(key) 封包") }
@@ -265,7 +268,7 @@ final class Headset: NSObject, ObservableObject, CBCentralManagerDelegate, CBPer
                 photoTimer?.invalidate()
                 if let image = NSImage(data: jpeg) { lastPreview = image; lastPreviewJPEG = jpeg; log("BLE 預覽完成：\(jpeg.count) bytes，低解析度，非原始畫質") }
                 else { log("BLE 預覽組裝完成但 JPEG 無法解碼，已丟棄") }
-            } else if code == 0x99 { log("BLE 預覽不完整或格式錯誤，未交付") }
+            } else if code == 0x99 { log("BLE 預覽不完整或格式錯誤，未交付（\(photo.lastSummary)）") }
         }
         if code == 0x46 {
             if voice.acceptsPackets {

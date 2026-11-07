@@ -15,8 +15,9 @@ import Foundation
     func run() async -> Int32 {
         defer { if headset.ready || headset.connecting { headset.disconnect() } }
         say("E900 自動驗收開始；不會送出設定、刪除、重置或 OTA 指令。")
+        say("等待藍牙（最多 60 秒；重新建置後 macOS 可能再次詢問藍牙權限，請按允許）…")
 
-        guard await waitUntil(10, { self.headset.status.hasPrefix("藍牙已開啟") }) else {
+        guard await waitUntil(60, { self.headset.status.hasPrefix("藍牙已開啟") }) else {
             say("藍牙不可用：\(headset.status)")
             say("請用 scripts/install-and-accept.sh（以 open 啟動 .app），並在「系統設定 → 隱私權與安全性 → 藍牙」允許 E900 Control 後重試。")
             report.record("藍牙", .fail, headset.status)
@@ -89,6 +90,11 @@ import Foundation
             report.notes.append("打開 \(url.lastPathComponent)，確認是剛拍的畫面")
         } else {
             report.record("AA15 BLE 預覽", .human, "15 秒內沒有完整 JPEG；E900 拍照後未必推送預覽，不列為失敗")
+            if !headset.rawAA15.isEmpty {
+                let raw = reportURL().deletingPathExtension().appendingPathExtension("aa15.bin")
+                try? headset.rawAA15.write(to: raw)
+                report.notes.append("AA15 原始位元組已存 \(raw.lastPathComponent)（\(headset.rawAA15.count) bytes），供分析預覽格式")
+            }
         }
     }
 
