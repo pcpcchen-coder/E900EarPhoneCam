@@ -145,6 +145,16 @@ Swift Package executable，SwiftUI + AppKit + CoreBluetooth + URLSession + AVFou
 
 shell 的 `open` 曾出現 `kLSNoExecutableErr`，但檢查 Mach-O／Info.plist 正常，使用 native app launcher 成功開啟；不要憑 shell 那條錯誤認定 .app 無法啟動。真正畫面已確認 Bluetooth poweredOn。
 
+## Claude Code 接手進度（2026-11-07）
+
+已完成（程式與自動測試；**皆未做新的耳機實機驗收**）：
+
+- **P0 全部**：`CommandCoordinator`（逾時／遲到回覆／斷線／GATT 錯誤／停止插隊與搶先）、停止類按鈕連線後一律可用、`VoiceSession`（停止確認前維持作用中、重送上限、token 化 auto-stop、被動喚醒）、媒體以清單＋主機＋檔名對應、XML 錯誤處理、`MediaDownloader` 與 URLProtocol 整合測試。
+- **P1**：依固定上游反編譯 `SendCommandViaBle`／`ModBleResponse` 補齊 0x02、0x35、0x32、0x70、0x72、0x59 編碼及查詢參數位元組；修正音量增減誤用 0x70；AA15 `52 58` 包裝完整解碼（照片預覽可組裝）；能力位元具名顯示、能力未知不啟動 live；0x48 回讀對應手勢／佩戴／方向／錄影時長選單；Ogg Opus 匯出（已用 opusinfo／opusdec 驗證 muxer）。
+- **P2 部分**：macOS CI（測試＋建置＋上傳 .app zip）；build script 相容不支援 `--build-system` 的舊 Swift。
+
+仍未完成：0x03 麥克風值域、0x35 位元組意義實機確認、內嵌 RTSP、Developer ID 簽署／公證、icon、iOS client、OTA（維持不做）。
+
 ## 優先補強：請先做 P0，再擴充功能
 
 ### P0 — 控制與下載狀態可靠性
