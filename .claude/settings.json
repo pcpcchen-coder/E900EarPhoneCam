@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Bash(xcodebuild *)",
+      "Bash(xcrun *)",
+      "Bash(xcode-select *)",
+      "Bash(swift *)",
+      "Bash(swiftc *)",
+      "Bash(plutil *)",
+      "Bash(defaults read *)",
+      "Bash(security find-identity *)",
+      "Bash(codesign *)",
+      "Bash(open *)",
+      "Bash(killall *)",
+      "Bash(pkill *)",
+      "Bash(python3 *)",
+      "Bash(python *)",
+      "Bash(source .venv/bin/activate*)",
+      "Bash(.venv/bin/*)",
+      "Bash(git *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(find *)",
+      "Bash(grep *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(log show *)",
+      "Bash(system_profiler *)",
+      "Bash(sw_vers*)",
+      "Bash(uname *)",
+      "Bash(which *)",
+      "Bash(tools/*)",
+      "Bash(./tools/*)",
+      "Bash(bash tools/*)"
+    ],
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git reset --hard*)",
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~*)",
+      "Read(./.env)",
+      "Read(./**/*.mobileprovision)",
+      "Read(./**/*.p12)"
+    ]
+  }
+}
