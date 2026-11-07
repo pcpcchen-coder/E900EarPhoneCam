@@ -24,8 +24,13 @@ app="$dest/E900 Control.app"
 pkill -x E900Control 2>/dev/null || true
 rm -rf "$app"
 ditto "$repo_root/dist/E900 Control.app" "$app"
+# Keep a single installed copy: drop the build output so Spotlight / Launchpad / Bluetooth
+# settings don't list a second "E900 Control" from dist/.
+lsregister=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+"$lsregister" -u "$repo_root/dist/E900 Control.app" 2>/dev/null || true
+rm -rf "$repo_root/dist/E900 Control.app"
 # Register the fresh copy right away; otherwise `open` can fail with -10810 for a few seconds.
-/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$app" 2>/dev/null || true
+"$lsregister" -f "$app" 2>/dev/null || true
 printf 'Installed: %s\n' "$app"
 
 if [[ $run_accept == 1 ]]; then
